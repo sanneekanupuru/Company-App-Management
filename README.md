@@ -1,4 +1,4 @@
-Company App Management API
+# Company App Management API
 
 A Spring Boot + JPA/Hibernate application demonstrating One-to-Many, Many-to-Many, and One-to-One relationships with properly structured JSON responses.
 
