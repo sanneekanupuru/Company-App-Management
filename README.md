@@ -1,5 +1,5 @@
 # Company-App-Management
-API list (simple & complete)
+API list:
 
 Base URL: http://localhost:8080/api
 
