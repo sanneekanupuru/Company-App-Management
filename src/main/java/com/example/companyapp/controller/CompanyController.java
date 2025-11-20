@@ -1,5 +1,10 @@
 package com.example.companyapp.controller;
 
+import com.example.companyapp.dto.CompanyDto;
+import com.example.companyapp.dto.EmployeeDto;
+import com.example.companyapp.dto.ProjectDto;
+import com.example.companyapp.dto.CompanyMapper;
+import com.example.companyapp.dto.ProjectMapper;
 import com.example.companyapp.model.Company;
 import com.example.companyapp.model.Employee;
 import com.example.companyapp.model.Project;
@@ -14,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -29,20 +35,27 @@ public class CompanyController {
         this.employeeService = employeeService;
     }
 
-    // Scenario 2: Fetch employees working on a project
+    // Scenario 2: Fetch employees working on a project (returns EmployeeDto list)
     @GetMapping("/projects/{projectId}/employees")
     public ResponseEntity<?> getEmployeesByProject(@PathVariable Long projectId) {
         List<Employee> list = projectService.getEmployeesByProject(projectId);
         if (list.isEmpty()) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(list);
+
+        List<EmployeeDto> dtos = list.stream()
+                .map(com.example.companyapp.dto.EmployeeMapper::toDto)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
     }
 
-    // Scenario 2: Fetch projects assigned to an employee
+    // Scenario 2: Fetch projects assigned to an employee (returns ProjectDto list)
     @GetMapping("/employees/{employeeId}/projects")
     public ResponseEntity<?> getProjectsByEmployee(@PathVariable Long employeeId) {
         List<Project> list = employeeService.getProjectsForEmployee(employeeId);
         if (list.isEmpty()) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(list);
+
+        List<ProjectDto> dtos = list.stream().map(ProjectMapper::toDto).collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     // Scenario 3 (and 4 read): Fetch company details with projects and employees using HQL fetch join
@@ -50,7 +63,8 @@ public class CompanyController {
     public ResponseEntity<?> getCompanyTree(@PathVariable String name) {
         Company c = companyService.getCompanyWithTree(name);
         if (c == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(c);
+        CompanyDto dto = CompanyMapper.toDto(c);
+        return ResponseEntity.ok(dto);
     }
 
     // Delete company cascade (Scenario 3)
@@ -79,6 +93,13 @@ public class CompanyController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(dir, prop));
         Page<Employee> p = projectService.getEmployeesByProjectPaged(projectId, pageable);
         if (p.isEmpty()) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(p);
+
+        // map page content to DTOs
+        List<com.example.companyapp.dto.EmployeeDto> dtoContent = p.getContent().stream()
+                .map(com.example.companyapp.dto.EmployeeMapper::toDto)
+                .collect(Collectors.toList());
+
+        // repackage into a simple response object (you can return Page-like structure if needed)
+        return ResponseEntity.ok(new org.springframework.data.domain.PageImpl<>(dtoContent, pageable, p.getTotalElements()));
     }
 }
